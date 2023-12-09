@@ -6,6 +6,9 @@ from vllm.logger import init_logger
 from vllm.utils import is_hip
 
 logger = init_logger(__name__)
+import os
+N_CPUS = os.environ.get("VLLM_N_CPUS", None)
+N_CPUS = int(N_CPUS) if N_CPUS else None
 
 try:
     import ray
@@ -77,9 +80,10 @@ def initialize_cluster(
         if is_hip():
             ray.init(address=ray_address,
                      ignore_reinit_error=True,
-                     num_gpus=parallel_config.world_size)
+                     num_gpus=parallel_config.world_size,
+                     num_cpus=N_CPUS)
         else:
-            ray.init(address=ray_address, ignore_reinit_error=True)
+            ray.init(address=ray_address, ignore_reinit_error=True, num_gpus=parallel_config.world_size, num_cpus=N_CPUS)
 
     if not parallel_config.worker_use_ray:
         # Initialize cluster locally.
