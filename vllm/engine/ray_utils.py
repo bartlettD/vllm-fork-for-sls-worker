@@ -1,14 +1,46 @@
+import os
 import socket
 from typing import Optional, Tuple, TYPE_CHECKING
-
 from vllm.config import ParallelConfig
 from vllm.logger import init_logger
 from vllm.utils import is_hip
 
 logger = init_logger(__name__)
 import os
-N_CPUS = os.environ.get("VLLM_N_CPUS", None)
-N_CPUS = int(N_CPUS) if N_CPUS else None
+def count_physical_cores():
+    with open('/proc/cpuinfo') as f:
+        content = f.readlines()
+
+    cores = set()
+    current_physical_id = None
+    current_core_id = None
+
+    for line in content:
+        if 'physical id' in line:
+            current_physical_id = line.strip().split(': ')[1]
+        elif 'core id' in line:
+            current_core_id = line.strip().split(': ')[1]
+            cores.add((current_physical_id, current_core_id))
+
+    return len(cores)
+
+CPU_FRACTION = float(os.environ.get("VLLM_CPU_FRACTION", 1))
+USE_PHYSICAL_CPU_COUNT = int(os.environ.get("NUM_GPU_SHARD", 1)) > 1
+if USE_PHYSICAL_CPU_COUNT:
+    total_CPUs =count_physical_cores()
+    N_CPUS = int(total_CPUs * CPU_FRACTION)
+    logger.info(f"Total CPUs: {total_CPUs}")
+    logger.info(f"Using {N_CPUS} CPUs")
+else:
+    N_CPUS = None
+
+def get_physical_cpu_count():
+    """Get the number of physical CPU cores."""
+    try:
+        import psutil
+        return psutil.cpu_count(logical=False)
+    except ImportError:
+        return os.cpu_count()
 
 try:
     import ray
