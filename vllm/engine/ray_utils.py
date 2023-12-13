@@ -1,11 +1,39 @@
 import socket
 from typing import Optional, Tuple, TYPE_CHECKING
-
+import os
 from vllm.config import ParallelConfig
 from vllm.logger import init_logger
 from vllm.utils import is_hip
 
 logger = init_logger(__name__)
+
+def count_physical_cores():
+    with open('/proc/cpuinfo') as f:
+        content = f.readlines()
+
+    cores = set()
+    current_physical_id = None
+    current_core_id = None
+
+    for line in content:
+        if 'physical id' in line:
+            current_physical_id = line.strip().split(': ')[1]
+        elif 'core id' in line:
+            current_core_id = line.strip().split(': ')[1]
+            cores.add((current_physical_id, current_core_id))
+
+    return len(cores)
+
+CPU_FRACTION = float(os.environ.get("VLLM_CPU_FRACTION", 1))
+USE_PHYSICAL_CPU_COUNT = int(os.environ.get("NUM_GPU_SHARD", 1)) > 1
+if USE_PHYSICAL_CPU_COUNT:
+    total_CPUs =count_physical_cores()
+    N_CPUS = int(total_CPUs * CPU_FRACTION)
+    logger.info(f"Total CPUs: {total_CPUs}")
+    logger.info(f"Using {N_CPUS} CPUs")
+else:
+    N_CPUS = None
+    
 
 try:
     import ray
