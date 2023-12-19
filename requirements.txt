@@ -14,6 +14,5 @@ uvicorn[standard]
 pydantic == 1.10.13  # Required for OpenAI server.
 aioprometheus[starlette]
 
--i https://download.pytorch.org/whl/cu118
-torch == 2.1.2
-xformers
+torch == 2.1.2 -i https://download.pytorch.org/whl/cu118
+xformers -i https://download.pytorch.org/whl/cu118
