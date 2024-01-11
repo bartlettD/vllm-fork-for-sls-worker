@@ -3,11 +3,10 @@
 
 name: Create Release
 
-#on:
-#  push:
-#    tags:
-#      - v*
-on: workflow_dispatch
+on:
+  push:
+    branches: cuda-11.8-wheel
+  workflow_dispatch:
 # Needed to create release and upload assets
 permissions:
   contents: write
